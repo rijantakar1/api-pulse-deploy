@@ -3,8 +3,7 @@ kind: Application
 metadata:
   name: api-pulse
   namespace: argocd
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io/cascade
+  # No cascade finalizer — avoids stuck "Deleting" on Minikube demos when Git is unreachable.
 spec:
   project: api-pulse
   source:
