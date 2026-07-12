@@ -36,7 +36,7 @@ helm upgrade --install "$RELEASE" "$ROOT/charts/api-pulse" \
   --set images.auth.tag="$TAG" \
   --set images.analytics.tag="$TAG" \
   --set imagePullPolicy=Always \
-  "${EXTRA_ARGS[@]}" \
+  ${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"} \
   "$@"
 
 echo
