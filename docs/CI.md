@@ -41,10 +41,13 @@ Cross-repo `uses: owner/repo/...@main` only works after the reusable file exists
 
 Your GitHub repos are **private**. Share reusable workflows from deploy:
 
-1. Open: https://github.com/rijantakar1/api-pulse-deploy/settings/actions  
+1. Open: https://github.com/cd-demo/api-pulse-deploy/settings/actions  
 2. Scroll to **Access**  
-3. Select: **Accessible from repositories owned by the user `rijantakar1`**  
+3. Select: **Accessible from repositories in the `cd-demo` organization**  
 4. Save  
+
+Also confirm org Actions permissions:  
+https://github.com/organizations/cd-demo/settings/actions  
 
 ### 3. Docker Hub secrets (each app repo)
 
