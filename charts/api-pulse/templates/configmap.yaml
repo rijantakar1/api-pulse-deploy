@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-pulse-config
+  labels:
+    app.kubernetes.io/name: {{ include "api-pulse.name" . }}
+data:
+  DB_HOST: "mysql"
+  DB_PORT: "3306"
+  DB_USER: {{ .Values.mysql.user | quote }}
+  REGISTRY_DB: "api_pulse_registry"
+  AUTH_VERSION: {{ .Values.versions.auth | quote }}
+  ANALYTICS_VERSION: {{ .Values.versions.analytics | quote }}
+  UI_VERSION: {{ .Values.versions.ui | quote }}
+  UI_THEME_COLOR: {{ .Values.uiThemeColor | quote }}
+  AUTH_URL: {{ .Values.authUrl | quote }}
+  ANALYTICS_URL: {{ .Values.analyticsUrl | quote }}

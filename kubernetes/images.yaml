@@ -1,0 +1,8 @@
+# Plain manifests — images from Docker Hub (same as CI).
+# Prefer Helm for day-to-day deploys: ./scripts/helm-install.sh
+image:
+  registry: docker.io
+  pullPolicy: Always
+  web: rajashekhar2390/api-pulse-web:latest
+  auth: rajashekhar2390/api-pulse-auth-service:latest
+  analytics: rajashekhar2390/api-pulse-analytics-service:latest

@@ -17,8 +17,8 @@ spec:
     spec:
       containers:
         - name: analytics-service
-          image: rajashekhar2390/api-pulse-analytics-service:1.0.0
-          imagePullPolicy: IfNotPresent
+          image: rajashekhar2390/api-pulse-analytics-service:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 4002
           env:

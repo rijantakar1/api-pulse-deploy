@@ -20,4 +20,5 @@ kubectl apply -f "$ROOT/kubernetes/web.yaml"
 kubectl apply -f "$ROOT/kubernetes/ingress.yaml"
 
 echo "Applied API Pulse manifests to namespace ${NS}."
-echo "Remember to build/load images into Minikube before pods become Ready."
+echo "Images pull from Docker Hub (rajashekhar2390/*:${IMAGE_TAG:-latest})."
+echo "Preferred path: ./scripts/helm-install.sh"

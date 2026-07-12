@@ -1,48 +1,69 @@
 # API Pulse — Deploy
 
-Shared Docker Compose, MySQL bootstrap, tenant scripts, and Kubernetes manifests for the **API Pulse** demo.
+Docker Compose, Helm, MySQL bootstrap, and Kubernetes manifests for the **API Pulse** demo.
 
-Sibling application repos (expected next to this folder under `argocd-demo/`):
+App repos (org `cd-demo`) build/push to Docker Hub; this repo **pulls** those images.
 
-| Repo | Role |
-|------|------|
-| [`api-pulse-web`](../api-pulse-web) | React UI |
-| [`api-pulse-auth-service`](../api-pulse-auth-service) | JWT auth |
-| [`api-pulse-analytics-service`](../api-pulse-analytics-service) | Metrics API |
+| Repo | Hub image |
+|------|-----------|
+| `api-pulse-web` | `rajashekhar2390/api-pulse-web` |
+| `api-pulse-auth-service` | `rajashekhar2390/api-pulse-auth-service` |
+| `api-pulse-analytics-service` | `rajashekhar2390/api-pulse-analytics-service` |
 
-Personal GitHub setup (BMC config untouched): see [`../PERSONAL-GIT-SETUP.md`](../PERSONAL-GIT-SETUP.md).
-
-CI (reusable Docker build → Docker Hub): see [`docs/CI.md`](docs/CI.md).
+CI notes: [`docs/CI.md`](docs/CI.md)
 
 ## Layout
 
 ```
 api-pulse-deploy/
+├── charts/api-pulse/            # Helm chart (Docker Hub images)
 ├── db/
-│   ├── init.sql                 # registry + Acme / Globex seed
-│   └── scripts/add-tenant.sh    # add a new tenant schema
-├── docker-compose.yml
-├── kubernetes/
-│   └── build-images-minikube.sh
-└── kubernetes/
-    ├── namespace.yaml
-    ├── configmap.yaml
-    ├── secret.yaml
-    ├── mysql.yaml
-    ├── auth-service.yaml
-    ├── analytics-service.yaml
-    ├── web.yaml
-    ├── ingress.yaml
-    └── apply.sh
+├── docker-compose.yml           # pulls Hub images
+├── scripts/
+│   ├── helm-install.sh          # recommended install/upgrade
+│   ├── port-forward.sh
+│   └── build-images-minikube.sh # optional local builds only
+└── kubernetes/                   # plain YAML (also Hub :latest)
 ```
 
-## Docker Compose (local)
+## Helm (recommended)
 
-From this directory, with sibling repos present:
+```bash
+chmod +x scripts/helm-install.sh scripts/port-forward.sh
+
+# Uses rajashekhar2390/*:latest by default
+./scripts/helm-install.sh
+
+# Pin a CI tag
+IMAGE_TAG=main-abc1234 ./scripts/helm-install.sh
+
+# Private Hub repos — create imagePullSecret
+IMAGE_PULL_SECRET=1 \
+  DOCKERHUB_USERNAME=rajashekhar2390 \
+  DOCKERHUB_TOKEN='...' \
+  ./scripts/helm-install.sh
+
+./scripts/port-forward.sh
+```
+
+Open http://localhost:8080
+
+Override tags:
+
+```bash
+helm upgrade --install api-pulse ./charts/api-pulse -n api-pulse \
+  --set images.web.tag=latest \
+  --set images.auth.tag=latest \
+  --set images.analytics.tag=latest \
+  --set imagePullPolicy=Always
+```
+
+## Docker Compose
 
 ```bash
 cp .env.example .env
-docker compose up --build
+docker compose pull
+docker compose up -d
 ```
 
 | Service | URL |
@@ -50,68 +71,24 @@ docker compose up --build
 | Web | http://localhost:8080 |
 | Auth | http://localhost:4001 |
 | Analytics | http://localhost:4002 |
-| MySQL | localhost:3306 |
 
-Demo logins (password `password123`):
+Demo: `admin@acme.demo` / `admin@globex.demo` — password `password123`
 
-- `admin@acme.demo` (teal theme)
-- `admin@globex.demo` (amber theme)
-
-### Add a tenant
+## Plain Kubernetes manifests
 
 ```bash
-chmod +x db/scripts/add-tenant.sh
-./db/scripts/add-tenant.sh initech "Initech" "#1D4ED8" admin@initech.demo password123
-```
-
-## Minikube
-
-### Recommended on Mac (Docker driver): port-forward
-
-`api-pulse.local` / Minikube IP often is **not reachable** from macOS with the Docker driver, and Ingress is optional. Use localhost forwards instead:
-
-```bash
-# Point the UI at localhost auth/analytics (already the default in configmap.yaml)
-kubectl apply -f kubernetes/configmap.yaml
-kubectl -n api-pulse rollout restart deploy/web
-
-chmod +x scripts/port-forward.sh
+./kubernetes/apply.sh
 ./scripts/port-forward.sh
 ```
 
-Open **http://localhost:8080** (keep the port-forward terminal running).
+Deployments use `rajashekhar2390/*:latest` with `imagePullPolicy: Always`.
 
-Demo logins: `admin@acme.demo` / `admin@globex.demo` — password `password123`.
+## Tenancy model
 
-### Optional: Ingress (`api-pulse.local`)
-
-```bash
-minikube addons enable ingress
-minikube start   # if needed
-# then switch ConfigMap AUTH_URL / ANALYTICS_URL back to:
-#   http://api-pulse.local/auth  and  http://api-pulse.local/analytics
-./scripts/build-images-minikube.sh
-./kubernetes/apply.sh
-echo "$(minikube ip) api-pulse.local" | sudo tee -a /etc/hosts
-minikube tunnel   # keep running; needs your Mac password
-```
-
-Open http://api-pulse.local
-
-Ingress paths (when using that mode):
-
-- `/` → web
-- `/auth/*` → auth-service (strip prefix)
-- `/analytics/*` → analytics-service (strip prefix)
-
-Bump versions for demos by editing `AUTH_VERSION` / `ANALYTICS_VERSION` / `UI_VERSION` in `kubernetes/configmap.yaml` and rebuilding images with `IMAGE_TAG`.
-
-## Tenancy model (this phase)
-
-- **Shared deployments** in namespace `api-pulse` — one UI + Auth + Analytics for all tenants.
-- **Database-per-tenant** (`tenant_acme`, `tenant_globex`, …) plus `api_pulse_registry.tenants`.
-- Tenant resolved at login; theme color comes from the tenant row.
+- Shared deployments in namespace `api-pulse`
+- Database-per-tenant + `api_pulse_registry`
+- Theme from tenant row after login
 
 ## Future
 
-Per-tenant service versions via Argo CD + a tenant-manager (UI/backend) and a git mapping of tenant → image tags is intentionally out of scope here.
+Per-tenant image tags via Argo CD / tenant-manager is out of scope for this phase.

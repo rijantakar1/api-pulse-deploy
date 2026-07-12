@@ -1,0 +1,68 @@
+# Docker Hub images produced by CI (cd-demo app repos).
+imageRegistry: docker.io
+imagePullPolicy: Always
+
+# Set true + provide dockerHub credentials if Hub repos are private.
+imagePullSecrets:
+  enabled: false
+  name: dockerhub-cred
+
+dockerHub:
+  username: ""
+  # Prefer --set dockerHub.password=... or an existing secret; do not commit tokens.
+  password: ""
+
+images:
+  web:
+    repository: rajashekhar2390/api-pulse-web
+    tag: latest
+  auth:
+    repository: rajashekhar2390/api-pulse-auth-service
+    tag: latest
+  analytics:
+    repository: rajashekhar2390/api-pulse-analytics-service
+    tag: latest
+  mysql:
+    repository: mysql
+    tag: "8.4"
+
+replicaCount:
+  web: 1
+  auth: 1
+  analytics: 1
+
+versions:
+  auth: "1.0.0"
+  analytics: "1.0.0"
+  ui: "1.0.0"
+
+uiThemeColor: "#0F766E"
+
+# Browser-reachable service URLs (port-forward friendly defaults).
+authUrl: "http://localhost:4001"
+analyticsUrl: "http://localhost:4002"
+
+mysql:
+  rootPassword: root
+  user: apipulse
+  password: apipulse
+  persistence:
+    enabled: true
+    size: 5Gi
+
+jwtSecret: "dev-jwt-secret-change-me"
+
+ingress:
+  enabled: false
+  className: nginx
+  host: api-pulse.local
+
+service:
+  web:
+    port: 80
+  auth:
+    port: 80
+    targetPort: 4001
+  analytics:
+    port: 80
+    targetPort: 4002
