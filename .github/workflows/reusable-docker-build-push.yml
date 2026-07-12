@@ -1,0 +1,143 @@
+# Reusable: build a Docker image and push it to Docker Hub.
+#
+# Called from app repos (web / auth / analytics). Not used by this deploy repo itself.
+#
+# Required secrets in the *caller* repo (or org):
+#   DOCKERHUB_USERNAME
+#   DOCKERHUB_TOKEN   (Docker Hub Access Token, not account password)
+
+name: Reusable Docker Build & Push
+
+on:
+  workflow_call:
+    inputs:
+      image_name:
+        description: "Full image name without tag (e.g. rijantakar1/api-pulse-web)"
+        required: true
+        type: string
+      context:
+        description: "Docker build context path"
+        required: false
+        type: string
+        default: "."
+      dockerfile:
+        description: "Path to Dockerfile relative to context"
+        required: false
+        type: string
+        default: "Dockerfile"
+      build_args:
+        description: "Newline-separated KEY=VALUE build-args (optional)"
+        required: false
+        type: string
+        default: ""
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_TOKEN:
+        required: true
+    outputs:
+      image_tags:
+        description: "Newline-separated tags that were pushed"
+        value: ${{ jobs.build-and-push.outputs.tags }}
+      image_digest:
+        description: "Image digest"
+        value: ${{ jobs.build-and-push.outputs.digest }}
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-push:
+    name: Build & push
+    runs-on: ubuntu-latest
+    outputs:
+      tags: ${{ steps.version.outputs.tags }}
+      digest: ${{ steps.push.outputs.digest }}
+    steps:
+      - name: Checkout caller repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Derive version tags
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          REF="${GITHUB_REF_NAME}"
+          SHA_SHORT="${GITHUB_SHA::7}"
+          PKG_VERSION="1.0.0"
+          if [[ -f package.json ]]; then
+            PKG_VERSION="$(node -p "require('./package.json').version || '1.0.0'")"
+          fi
+
+          SAFE_REF="$(echo "$REF" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9._-]+/-/g' | cut -c1-120)"
+
+          TAGS=()
+          if [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
+            TAGS+=("${{ inputs.image_name }}:latest")
+            TAGS+=("${{ inputs.image_name }}:${PKG_VERSION}")
+            TAGS+=("${{ inputs.image_name }}:${PKG_VERSION}-${SHA_SHORT}")
+            TAGS+=("${{ inputs.image_name }}:main-${SHA_SHORT}")
+            echo "version=${PKG_VERSION}" >> "$GITHUB_OUTPUT"
+          else
+            TAGS+=("${{ inputs.image_name }}:${SAFE_REF}")
+            TAGS+=("${{ inputs.image_name }}:${SAFE_REF}-${SHA_SHORT}")
+            echo "version=${SAFE_REF}-${SHA_SHORT}" >> "$GITHUB_OUTPUT"
+          fi
+
+          {
+            echo "tags<<EOF"
+            printf '%s\n' "${TAGS[@]}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "Pushing tags:"
+          printf '  - %s\n' "${TAGS[@]}"
+
+      - name: Parse build-args
+        id: buildargs
+        shell: bash
+        run: |
+          set -euo pipefail
+          ARGS="${{ inputs.build_args }}"
+          {
+            echo "list<<EOF"
+            echo "VERSION=${{ steps.version.outputs.version }}"
+            if [[ -n "$ARGS" ]]; then
+              printf '%s\n' "$ARGS"
+            fi
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ inputs.context }}
+          file: ${{ inputs.context }}/${{ inputs.dockerfile }}
+          push: true
+          tags: ${{ steps.version.outputs.tags }}
+          build-args: ${{ steps.buildargs.outputs.list }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Summary
+        run: |
+          {
+            echo "### Docker image pushed"
+            echo ""
+            echo "- **Image:** \`${{ inputs.image_name }}\`"
+            echo "- **Digest:** \`${{ steps.push.outputs.digest }}\`"
+            echo "- **Tags:**"
+            echo '${{ steps.version.outputs.tags }}' | while IFS= read -r line; do
+              [[ -n "$line" ]] && echo "- \`$line\`"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"

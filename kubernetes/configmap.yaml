@@ -12,6 +12,9 @@ data:
   ANALYTICS_VERSION: "1.0.0"
   UI_VERSION: "1.0.0"
   UI_THEME_COLOR: "#0F766E"
-  # Browser-reachable base URLs via Ingress path prefixes
-  AUTH_URL: "http://api-pulse.local/auth"
-  ANALYTICS_URL: "http://api-pulse.local/analytics"
+  # Browser-reachable URLs for scripts/port-forward.sh (Minikube Docker/Mac).
+  # For Ingress (api-pulse.local) instead, use:
+  #   AUTH_URL: "http://api-pulse.local/auth"
+  #   ANALYTICS_URL: "http://api-pulse.local/analytics"
+  AUTH_URL: "http://localhost:4001"
+  ANALYTICS_URL: "http://localhost:4002"

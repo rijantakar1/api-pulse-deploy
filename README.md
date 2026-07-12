@@ -12,6 +12,8 @@ Sibling application repos (expected next to this folder under `argocd-demo/`):
 
 Personal GitHub setup (BMC config untouched): see [`../PERSONAL-GIT-SETUP.md`](../PERSONAL-GIT-SETUP.md).
 
+CI (reusable Docker build → Docker Hub): see [`docs/CI.md`](docs/CI.md).
+
 ## Layout
 
 ```
@@ -64,27 +66,39 @@ chmod +x db/scripts/add-tenant.sh
 
 ## Minikube
 
+### Recommended on Mac (Docker driver): port-forward
+
+`api-pulse.local` / Minikube IP often is **not reachable** from macOS with the Docker driver, and Ingress is optional. Use localhost forwards instead:
+
 ```bash
-minikube start
+# Point the UI at localhost auth/analytics (already the default in configmap.yaml)
+kubectl apply -f kubernetes/configmap.yaml
+kubectl -n api-pulse rollout restart deploy/web
+
+chmod +x scripts/port-forward.sh
+./scripts/port-forward.sh
+```
+
+Open **http://localhost:8080** (keep the port-forward terminal running).
+
+Demo logins: `admin@acme.demo` / `admin@globex.demo` — password `password123`.
+
+### Optional: Ingress (`api-pulse.local`)
+
+```bash
 minikube addons enable ingress
-
-# Build images into Minikube's Docker daemon
-chmod +x scripts/build-images-minikube.sh kubernetes/apply.sh
+minikube start   # if needed
+# then switch ConfigMap AUTH_URL / ANALYTICS_URL back to:
+#   http://api-pulse.local/auth  and  http://api-pulse.local/analytics
 ./scripts/build-images-minikube.sh
-
-# Apply manifests (creates mysql-init-sql ConfigMap from db/init.sql)
 ./kubernetes/apply.sh
-
-# Point host at the ingress
 echo "$(minikube ip) api-pulse.local" | sudo tee -a /etc/hosts
-
-# Or use tunnel (separate terminal)
-minikube tunnel
+minikube tunnel   # keep running; needs your Mac password
 ```
 
 Open http://api-pulse.local
 
-Ingress paths:
+Ingress paths (when using that mode):
 
 - `/` → web
 - `/auth/*` → auth-service (strip prefix)
