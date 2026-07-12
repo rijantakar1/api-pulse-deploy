@@ -13,17 +13,37 @@ kubectl -n api-pulse create configmap mysql-init-sql \
   --dry-run=client -o yaml | kubectl apply -f -
 
 # Private GitHub repo: create a repo credential secret for Argo CD.
-# Prefer a fine-scoped PAT (repo read) stored as GITHUB_TOKEN / ARGOCD_REPO_TOKEN.
+#
+# Token must be able to READ this repo (clone / list refs). Prefer:
+#   - Classic PAT with `repo` scope, OR
+#   - Fine-grained PAT: Resource owner = cd-demo (or your user if personal),
+#     Repository access = Only select → api-pulse-deploy,
+#     Permissions → Contents: Read-only (Metadata is not enough)
+#
+# Username should be your GitHub username (e.g. rijantakar1), NOT "git",
+# when using a fine-grained PAT.
+#
+#   export ARGOCD_REPO_TOKEN='ghp_...'   # or github_pat_...
+#   export ARGOCD_REPO_USERNAME='rijantakar1'
+#   ./scripts/bootstrap-argocd-app.sh
+#
 if [[ -n "${ARGOCD_REPO_TOKEN:-}" ]]; then
-  echo "Creating Argo CD repository secret for ${REPO_URL}"
+  : "${ARGOCD_REPO_USERNAME:?Set ARGOCD_REPO_USERNAME to your GitHub username (e.g. rijantakar1)}"
+  echo "Creating Argo CD repository secret for ${REPO_URL} (user=${ARGOCD_REPO_USERNAME})"
+  kubectl -n "$ARGO_NS" delete secret repo-api-pulse-deploy --ignore-not-found
   kubectl -n "$ARGO_NS" create secret generic repo-api-pulse-deploy \
     --from-literal=type=git \
     --from-literal=url="$REPO_URL" \
     --from-literal=password="$ARGOCD_REPO_TOKEN" \
-    --from-literal=username="${ARGOCD_REPO_USERNAME:-git}" \
-    --dry-run=client -o yaml | kubectl apply -f -
+    --from-literal=username="$ARGOCD_REPO_USERNAME"
   kubectl -n "$ARGO_NS" label secret repo-api-pulse-deploy \
     argocd.argoproj.io/secret-type=repository --overwrite
+  # Soft-refresh the app so it picks up the new creds
+  kubectl -n "$ARGO_NS" annotate application api-pulse \
+    argocd.argoproj.io/refresh=hard --overwrite 2>/dev/null || true
+else
+  echo "WARN: ARGOCD_REPO_TOKEN not set — Argo cannot clone private api-pulse-deploy."
+  echo "      export ARGOCD_REPO_TOKEN=... ARGOCD_REPO_USERNAME=rijantakar1 and re-run."
 fi
 
 # Optional: private Docker Hub pulls for app images

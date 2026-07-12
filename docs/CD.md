@@ -33,8 +33,39 @@ Scopes: `repo` (or fine-grained: read/write contents on `api-pulse-deploy` only)
 
 | Env / secret | Purpose |
 |--------------|---------|
-| `ARGOCD_REPO_TOKEN` | Same or read-only PAT so Argo can clone private `api-pulse-deploy` |
+| `ARGOCD_REPO_TOKEN` | PAT that can **read** `cd-demo/api-pulse-deploy` |
+| `ARGOCD_REPO_USERNAME` | Your GitHub username (e.g. `rijantakar1`) |
 | Optional `IMAGE_PULL_SECRET=1` + Hub creds | If Hub images are private |
+
+#### Fix: `authorization failed: Write access to repository not granted`
+
+Argo only needs **read**, but GitHub often returns that message when the token cannot access the repo.
+
+1. Create a **fine-grained PAT** (or classic `repo` PAT):
+   - Resource owner: **`cd-demo`** (the org), not only your user
+   - Repository access: **Only select repositories** → `api-pulse-deploy`
+   - Permissions → **Contents: Read-only** (and Metadata: Read)
+2. Re-register the credential:
+
+```bash
+export ARGOCD_REPO_TOKEN='github_pat_...'   # or ghp_...
+export ARGOCD_REPO_USERNAME='rijantakar1'   # your GitHub login, not "git"
+cd ~/Desktop/Projects/argocd-demo/api-pulse-deploy
+./scripts/bootstrap-argocd-app.sh
+kubectl -n argocd get application api-pulse
+```
+
+3. Confirm the token works outside Argo:
+
+```bash
+curl -sS -o /dev/null -w "%{http_code}\n" \
+  -H "Authorization: Bearer $ARGOCD_REPO_TOKEN" \
+  -H "Accept: application/vnd.github+json" \
+  https://api.github.com/repos/cd-demo/api-pulse-deploy
+# expect 200
+```
+
+If that returns `404`/`401`, the token still cannot see the repo (wrong owner, missing repo selection, or org policy).
 
 ## Bootstrap Minikube + Argo CD (once)
 
