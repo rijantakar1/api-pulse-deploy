@@ -1,0 +1,109 @@
+# Continuous Delivery (Argo CD)
+
+GitOps CD for API Pulse on Minikube.
+
+```text
+merge to main → CI build/push YYYYMMDD-<sha7> → commit Helm values → Argo CD sync → Minikube
+```
+
+## Image tags
+
+Format: `YYYYMMDD-<gitsha7>` (UTC date + short commit).
+
+Example: `rajashekhar2390/api-pulse-web:20260712-a1b2c3d`
+
+CI also pushes `:latest` as a convenience alias. **Helm/Argo values use only the immutable tag.**
+
+`versions.auth|analytics|ui` in [`charts/api-pulse/values.yaml`](../charts/api-pulse/values.yaml) are set to the same string so the UI Environment Info widget matches.
+
+## Secrets
+
+### App repos (or org `cd-demo`)
+
+| Secret | Purpose |
+|--------|---------|
+| `DOCKERHUB_USERNAME` | Hub user (`rajashekhar2390`) |
+| `DOCKERHUB_TOKEN` | Hub access token |
+| `DEPLOY_REPO_TOKEN` | GitHub PAT (or fine-grained token) with **contents: write** on `cd-demo/api-pulse-deploy` |
+
+Create a PAT: GitHub → Settings → Developer settings → Personal access tokens  
+Scopes: `repo` (or fine-grained: read/write contents on `api-pulse-deploy` only).
+
+### Argo CD (cluster)
+
+| Env / secret | Purpose |
+|--------------|---------|
+| `ARGOCD_REPO_TOKEN` | Same or read-only PAT so Argo can clone private `api-pulse-deploy` |
+| Optional `IMAGE_PULL_SECRET=1` + Hub creds | If Hub images are private |
+
+## Bootstrap Minikube + Argo CD (once)
+
+```bash
+minikube start
+cd /path/to/api-pulse-deploy
+
+chmod +x scripts/install-argocd.sh scripts/bootstrap-argocd-app.sh
+./scripts/install-argocd.sh
+
+# Private deploy repo access for Argo:
+export ARGOCD_REPO_TOKEN='ghp_...'
+./scripts/bootstrap-argocd-app.sh
+
+# UI
+kubectl -n argocd port-forward svc/argocd-server 8081:443
+# https://localhost:8081  user: admin  (password printed by install script)
+```
+
+Watch the app:
+
+```bash
+kubectl -n argocd get application api-pulse
+kubectl -n api-pulse get pods -w
+```
+
+## Day-2: deploy by merging code
+
+1. Merge a PR to `main` on `api-pulse-web` / `auth-service` / `analytics-service`
+2. Actions: build → push Hub tag → commit `images.<svc>.tag` in this repo
+3. Argo CD auto-syncs (selfHeal on) → Deployment rolls out
+
+Manual values bump (for testing Argo without CI):
+
+```bash
+./scripts/bump_values.py charts/api-pulse/values.yaml analytics 20260712-testdemo
+git add charts/api-pulse/values.yaml
+git commit -m "chore(cd): bump analytics image to 20260712-testdemo"
+git push origin main
+```
+
+## E2E checklist
+
+1. [ ] Argo CD installed; Application `api-pulse` Healthy/Synced  
+2. [ ] `DEPLOY_REPO_TOKEN` set on app repos  
+3. [ ] Merge (or push) to analytics `main`  
+4. [ ] Actions: image pushed `rajashekhar2390/api-pulse-analytics-service:YYYYMMDD-sha`  
+5. [ ] Deploy repo gets commit `chore(cd): bump analytics image to ...`  
+6. [ ] Argo Application syncs; pod image shows new tag  
+7. [ ] UI Environment Info / `/health` shows matching version string  
+
+## Feasibility notes (Mac + VPN + Minikube)
+
+- Argo CD runs **inside** Minikube; it does not need the Actions runner to kubectl-deploy.
+- Runner only builds, pushes Hub, and commits GitOps.
+- VPN must allow Minikube pods to pull from Docker Hub and Argo to reach GitHub.
+- Keep Minikube running while testing CD.
+
+## Layout
+
+```text
+argocd/
+  namespace.yaml
+  project.yaml
+  application.yaml
+scripts/
+  install-argocd.sh
+  bootstrap-argocd-app.sh
+  bump_values.py
+charts/api-pulse/
+  values.yaml          # source of truth for image tags
+```

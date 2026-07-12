@@ -1,0 +1,33 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: api-pulse
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io/cascade
+spec:
+  project: api-pulse
+  source:
+    repoURL: https://github.com/cd-demo/api-pulse-deploy.git
+    targetRevision: main
+    path: charts/api-pulse
+    helm:
+      valueFiles:
+        - values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: api-pulse
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - RespectIgnoreDifferences=true
+  ignoreDifferences:
+    # PVC / Secret fields managed by controllers
+    - group: ""
+      kind: Secret
+      jsonPointers:
+        - /data
+        - /stringData

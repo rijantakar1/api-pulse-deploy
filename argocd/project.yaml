@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: api-pulse
+  namespace: argocd
+spec:
+  description: API Pulse demo applications
+  sourceRepos:
+    - https://github.com/cd-demo/api-pulse-deploy.git
+    - https://github.com/cd-demo/*
+  destinations:
+    - namespace: api-pulse
+      server: https://kubernetes.default.svc
+    - namespace: argocd
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"

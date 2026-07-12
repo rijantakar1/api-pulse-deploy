@@ -10,78 +10,55 @@ App repos (org `cd-demo`) build/push to Docker Hub; this repo **pulls** those im
 | `api-pulse-auth-service` | `rajashekhar2390/api-pulse-auth-service` |
 | `api-pulse-analytics-service` | `rajashekhar2390/api-pulse-analytics-service` |
 
-CI notes: [`docs/CI.md`](docs/CI.md)
+CI notes: [`docs/CI.md`](docs/CI.md)  
+CD (Argo CD / GitOps): [`docs/CD.md`](docs/CD.md)
 
 ## Layout
 
 ```
 api-pulse-deploy/
+├── argocd/                      # Argo CD Application + AppProject
 ├── charts/api-pulse/            # Helm chart (Docker Hub images)
 ├── db/
 ├── docker-compose.yml           # pulls Hub images
+├── docs/
+│   ├── CI.md
+│   └── CD.md
 ├── scripts/
-│   ├── helm-install.sh          # recommended install/upgrade
+│   ├── helm-install.sh          # bootstrap without Argo (optional)
+│   ├── install-argocd.sh
+│   ├── bootstrap-argocd-app.sh
+│   ├── bump_values.py
 │   ├── port-forward.sh
-│   └── build-images-minikube.sh # optional local builds only
-└── kubernetes/                   # plain YAML (also Hub :latest)
+│   └── build-images-minikube.sh
+└── kubernetes/
 ```
 
-## Helm (recommended)
+## Argo CD (recommended CD)
+
+See [`docs/CD.md`](docs/CD.md) for install, secrets (`DEPLOY_REPO_TOKEN`, `ARGOCD_REPO_TOKEN`), and E2E checklist.
 
 ```bash
-chmod +x scripts/helm-install.sh scripts/port-forward.sh
+./scripts/install-argocd.sh
+ARGOCD_REPO_TOKEN=ghp_... ./scripts/bootstrap-argocd-app.sh
+kubectl -n argocd port-forward svc/argocd-server 8081:443
+```
 
-# Uses rajashekhar2390/*:latest by default
+## Helm (bootstrap without Argo)
+
+```bash
 ./scripts/helm-install.sh
-
-# Pin a CI tag
-IMAGE_TAG=main-abc1234 ./scripts/helm-install.sh
-
-# Private Hub repos — create imagePullSecret
-IMAGE_PULL_SECRET=1 \
-  DOCKERHUB_USERNAME=rajashekhar2390 \
-  DOCKERHUB_TOKEN='...' \
-  ./scripts/helm-install.sh
-
 ./scripts/port-forward.sh
-```
-
-Open http://localhost:8080
-
-Override tags:
-
-```bash
-helm upgrade --install api-pulse ./charts/api-pulse -n api-pulse \
-  --set images.web.tag=latest \
-  --set images.auth.tag=latest \
-  --set images.analytics.tag=latest \
-  --set imagePullPolicy=Always
 ```
 
 ## Docker Compose
 
 ```bash
 cp .env.example .env
-docker compose pull
-docker compose up -d
+docker compose pull && docker compose up -d
 ```
-
-| Service | URL |
-|---------|-----|
-| Web | http://localhost:8080 |
-| Auth | http://localhost:4001 |
-| Analytics | http://localhost:4002 |
 
 Demo: `admin@acme.demo` / `admin@globex.demo` — password `password123`
-
-## Plain Kubernetes manifests
-
-```bash
-./kubernetes/apply.sh
-./scripts/port-forward.sh
-```
-
-Deployments use `rajashekhar2390/*:latest` with `imagePullPolicy: Always`.
 
 ## Tenancy model
 
@@ -91,4 +68,4 @@ Deployments use `rajashekhar2390/*:latest` with `imagePullPolicy: Always`.
 
 ## Future
 
-Per-tenant image tags via Argo CD / tenant-manager is out of scope for this phase.
+Per-tenant Argo ApplicationSets / tenant-manager mapping is a later phase.

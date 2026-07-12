@@ -1,4 +1,5 @@
 # Docker Hub images produced by CI (cd-demo app repos).
+# GitOps: CI sets images.<svc>.tag and versions.<svc|ui> to YYYYMMDD-<sha7>.
 imageRegistry: docker.io
 imagePullPolicy: Always
 
@@ -24,17 +25,18 @@ images:
     tag: latest
   mysql:
     repository: mysql
-    tag: "8.4"
+    tag: latest
 
 replicaCount:
   web: 1
   auth: 1
   analytics: 1
 
+# Shown in UI Environment Info / service health (aligned with image tag by CI).
 versions:
-  auth: "1.0.0"
-  analytics: "1.0.0"
-  ui: "1.0.0"
+  auth: "latest"
+  analytics: "latest"
+  ui: "latest"
 
 uiThemeColor: "#0F766E"
 

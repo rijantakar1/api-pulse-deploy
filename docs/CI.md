@@ -1,44 +1,30 @@
-# CI — Docker Hub builds
+# CI — Docker Hub builds + GitOps bump
 
-App repos use **self-contained** workflows (`.github/workflows/build-push.yml`) so CI does not depend on
-cross-repo reusable-workflow access. That avoids the common private-org error:
+App workflows (self-contained):
 
-```text
-workflow was not found
--> cd-demo/api-pulse-deploy/.github/workflows/reusable-docker-build-push.yml@main
-```
+- Build/push image tag `YYYYMMDD-<sha7>`
+- On `main` only: commit Helm values in `cd-demo/api-pulse-deploy` (Argo CD syncs)
 
-The reusable workflow in this repo remains the **reference implementation** if you later enable Access and switch callers back.
+See also [`CD.md`](CD.md).
 
 ## Triggers
 
-| Event | Branches |
-|-------|----------|
-| Push / merge | `main` |
-| Push | `feature-**` |
-| Manual | `workflow_dispatch` |
+| Event | Branches | GitOps bump |
+|-------|----------|-------------|
+| Push / merge | `main` | Yes |
+| Push | `feature-**` | No (build only) |
+| Manual | `workflow_dispatch` | If on `main` |
 
-## Images (Docker Hub user `rajashekhar2390`)
-
-- `rajashekhar2390/api-pulse-web`
-- `rajashekhar2390/api-pulse-auth-service`
-- `rajashekhar2390/api-pulse-analytics-service`
-
-## Secrets (each app repo, or org secrets)
+## Secrets (each app repo or org)
 
 | Secret | Value |
 |--------|--------|
 | `DOCKERHUB_USERNAME` | `rajashekhar2390` |
 | `DOCKERHUB_TOKEN` | Docker Hub access token |
-
-Org secrets: https://github.com/organizations/cd-demo/settings/secrets/actions
+| `DEPLOY_REPO_TOKEN` | GitHub PAT with write access to `cd-demo/api-pulse-deploy` |
 
 ## Runner
 
-Org or repo runner with labels: `self-hosted`, `macOS`, `X64`, `beacon`
+Labels: `self-hosted`, `macOS`, `X64`, `beacon`
 
-## Optional: restore cross-repo reusable calls
-
-1. https://github.com/cd-demo/api-pulse-deploy/settings/actions  
-2. **Access** → **Accessible from repositories in the `cd-demo` organization**  
-3. Point callers at `cd-demo/api-pulse-deploy/.github/workflows/reusable-docker-build-push.yml@main`
+GitOps commits use concurrency group `api-pulse-deploy-gitops` so parallel service merges rebase safely.
