@@ -74,6 +74,37 @@ Docker Desktop (or Docker engine) must be available on that machine for image bu
 
 The reusable workflow uses plain `docker build` / `docker push` (not Buildx), so it does **not** need to pull `moby/buildkit` from Docker Hub.
 
+#### Push `EOF` errors (URL is usually correct)
+
+A failure like:
+
+```text
+Head "https://registry-1.docker.io/v2/rijantakar1/api-pulse-analytics-service/blobs/sha256:...": EOF
+```
+
+means the **connection to Docker Hub was dropped**. The image name
+`rijantakar1/api-pulse-analytics-service` is the normal Docker Hub form
+(same as `docker.io/rijantakar1/api-pulse-analytics-service`).
+
+Check on the runner Mac:
+
+```bash
+# 1) Secrets match Hub username / image owner
+docker login -u rijantakar1
+
+# 2) Create the Hub repo once (optional but helps): docker.com → Repositories → Create
+#    Name: api-pulse-analytics-service  (public or private)
+
+# 3) Manual push test
+docker pull alpine:3.20
+docker tag alpine:3.20 rijantakar1/api-pulse-analytics-service:connectivity-test
+docker push rijantakar1/api-pulse-analytics-service:connectivity-test
+```
+
+If manual push also EOFs, fix Docker Desktop network/proxy (your Docker shows
+`HTTP(S) Proxy: http.docker.internal:3128`). Try toggling VPN, or Docker Desktop
+→ Settings → Resources / Proxies, then retry.
+
 ### 5. Caller workflows
 
 - `api-pulse-web/.github/workflows/build-push.yml`

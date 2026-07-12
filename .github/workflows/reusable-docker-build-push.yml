@@ -78,6 +78,23 @@ jobs:
         run: |
           set -euo pipefail
           echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+          echo "Logged in as: ${DOCKERHUB_USERNAME}"
+          echo "Target image namespace: ${{ inputs.image_name }}"
+          # Sanity: secret username should match image namespace owner
+          IMAGE_OWNER="$(echo "${{ inputs.image_name }}" | cut -d/ -f1)"
+          if [[ "$IMAGE_OWNER" != "$DOCKERHUB_USERNAME" ]]; then
+            echo "::warning::DOCKERHUB_USERNAME (${DOCKERHUB_USERNAME}) != image owner (${IMAGE_OWNER}). Push may fail with denied/EOF."
+          fi
+
+      - name: Docker Hub connectivity check
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "=== docker proxy / registry config ==="
+          docker info 2>/dev/null | grep -iE 'Username|Registry|Proxy|Name' || true
+          echo "=== registry-1.docker.io ==="
+          curl -sS -o /dev/null -w "HTTP %{http_code} time=%{time_total}s\n" \
+            -I --max-time 20 https://registry-1.docker.io/v2/ || echo "curl failed (network/proxy)"
 
       - name: Derive version tags
         id: version
@@ -156,10 +173,38 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+
+          push_with_retry() {
+            local tag="$1"
+            local attempt=1
+            local max=5
+            while true; do
+              echo "Pushing ${tag} (attempt ${attempt}/${max})"
+              if docker push "$tag"; then
+                return 0
+              fi
+              if (( attempt >= max )); then
+                echo "::error::Failed to push ${tag} after ${max} attempts (EOF usually means Docker Hub network/proxy drop, not a bad image URL)."
+                return 1
+              fi
+              sleep $(( attempt * 5 ))
+              attempt=$(( attempt + 1 ))
+            done
+          }
+
+          # Push :latest (or first tag) first; then the rest.
+          PRIMARY=""
           while IFS= read -r tag; do
             [[ -z "$tag" ]] && continue
-            echo "Pushing ${tag}"
-            docker push "$tag"
+            if [[ -z "$PRIMARY" ]]; then
+              PRIMARY="$tag"
+              push_with_retry "$tag"
+            fi
+          done <<< "${{ steps.version.outputs.tags }}"
+
+          while IFS= read -r tag; do
+            [[ -z "$tag" || "$tag" == "$PRIMARY" ]] && continue
+            push_with_retry "$tag"
           done <<< "${{ steps.version.outputs.tags }}"
 
           DIGEST="$(docker inspect --format='{{index .RepoDigests 0}}' "${{ steps.build.outputs.primary }}" 2>/dev/null || true)"
