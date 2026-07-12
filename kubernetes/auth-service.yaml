@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: auth-service
-          image: api-pulse-auth-service:1.0.0
+          image: rajashekhar2390/api-pulse-auth-service:1.0.0
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 4001

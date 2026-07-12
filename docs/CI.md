@@ -17,17 +17,19 @@ Default runner labels: `self-hosted`, `macOS`, `X64`, `beacon`.
 
 ## Image tags
 
+Docker Hub namespace: **`rajashekhar2390`**
+
 On **`main`**:
 
-- `rijantakar1/<service>:latest`
-- `rijantakar1/<service>:<package.json version>`
-- `rijantakar1/<service>:<version>-<shortsha>`
-- `rijantakar1/<service>:main-<shortsha>`
+- `rajashekhar2390/<service>:latest`
+- `rajashekhar2390/<service>:<package.json version>`
+- `rajashekhar2390/<service>:<version>-<shortsha>`
+- `rajashekhar2390/<service>:main-<shortsha>`
 
 On **`feature-*`**:
 
-- `rijantakar1/<service>:feature-<name>`
-- `rijantakar1/<service>:feature-<name>-<shortsha>`
+- `rajashekhar2390/<service>:feature-<name>`
+- `rajashekhar2390/<service>:feature-<name>-<shortsha>`
 
 ## One-time setup
 
@@ -37,84 +39,32 @@ Cross-repo `uses: owner/repo/...@main` only works after the reusable file exists
 
 ### 2. Fix “workflow was not found” (private repos) — required
 
-Your repos are **private**. GitHub will not let an app repo call a reusable workflow from `api-pulse-deploy` until access is shared.
+Your GitHub repos are **private**. Share reusable workflows from deploy:
 
 1. Open: https://github.com/rijantakar1/api-pulse-deploy/settings/actions  
-2. Scroll to **Access** (share reusable workflows / composite actions)  
+2. Scroll to **Access**  
 3. Select: **Accessible from repositories owned by the user `rijantakar1`**  
 4. Save  
-
-Without this, callers fail with:
-
-```text
-error parsing called workflow
-... workflow was not found
-```
-
-Optional: make `api-pulse-deploy` public instead (also works, but exposes manifests).
 
 ### 3. Docker Hub secrets (each app repo)
 
 | Secret | Value |
 |--------|--------|
-| `DOCKERHUB_USERNAME` | e.g. `rijantakar1` |
-| `DOCKERHUB_TOKEN` | Docker Hub access token |
+| `DOCKERHUB_USERNAME` | `rajashekhar2390` |
+| `DOCKERHUB_TOKEN` | Docker Hub access token for that account |
 
 Repo → **Settings → Secrets and variables → Actions**.
 
-> Local `docker login` on your Mac does **not** apply to GitHub Actions.
+> Must match the image owner. Pushing to `rajashekhar2390/...` while logged in as a different user will fail.
 
 ### 4. Self-hosted runner
 
-Ensure the runner is online and labeled exactly:
+Labels: `self-hosted`, `macOS`, `X64`, `beacon`
 
-`self-hosted`, `macOS`, `X64`, `beacon`
-
-Docker Desktop (or Docker engine) must be available on that machine for image builds.
-
-The reusable workflow uses plain `docker build` / `docker push` (not Buildx), so it does **not** need to pull `moby/buildkit` from Docker Hub.
-
-#### Push `EOF` errors (URL is usually correct)
-
-A failure like:
-
-```text
-Head "https://registry-1.docker.io/v2/rijantakar1/api-pulse-analytics-service/blobs/sha256:...": EOF
-```
-
-means the **connection to Docker Hub was dropped**. The image name
-`rijantakar1/api-pulse-analytics-service` is the normal Docker Hub form
-(same as `docker.io/rijantakar1/api-pulse-analytics-service`).
-
-Check on the runner Mac:
-
-```bash
-# 1) Secrets match Hub username / image owner
-docker login -u rijantakar1
-
-# 2) Create the Hub repo once (optional but helps): docker.com → Repositories → Create
-#    Name: api-pulse-analytics-service  (public or private)
-
-# 3) Manual push test
-docker pull alpine:3.20
-docker tag alpine:3.20 rijantakar1/api-pulse-analytics-service:connectivity-test
-docker push rijantakar1/api-pulse-analytics-service:connectivity-test
-```
-
-If manual push also EOFs, fix Docker Desktop network/proxy (your Docker shows
-`HTTP(S) Proxy: http.docker.internal:3128`). Try toggling VPN, or Docker Desktop
-→ Settings → Resources / Proxies, then retry.
+Docker Desktop must be running on the runner host.
 
 ### 5. Caller workflows
 
-- `api-pulse-web/.github/workflows/build-push.yml`
-- `api-pulse-auth-service/.github/workflows/build-push.yml`
-- `api-pulse-analytics-service/.github/workflows/build-push.yml`
-
-Override runner from a caller if needed:
-
-```yaml
-with:
-  image_name: rijantakar1/api-pulse-analytics-service
-  runs_on: '["self-hosted", "macOS", "ARM64", "beacon"]'
-```
+- `api-pulse-web` → `rajashekhar2390/api-pulse-web`
+- `api-pulse-auth-service` → `rajashekhar2390/api-pulse-auth-service`
+- `api-pulse-analytics-service` → `rajashekhar2390/api-pulse-analytics-service`

@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: web
-          image: api-pulse-web:1.0.0
+          image: rajashekhar2390/api-pulse-web:1.0.0
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80

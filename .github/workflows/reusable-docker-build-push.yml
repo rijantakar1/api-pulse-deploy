@@ -13,7 +13,7 @@ on:
   workflow_call:
     inputs:
       image_name:
-        description: "Full image name without tag (e.g. rijantakar1/api-pulse-web)"
+        description: "Full image name without tag (e.g. rajashekhar2390/api-pulse-web)"
         required: true
         type: string
       context:
