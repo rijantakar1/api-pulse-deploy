@@ -1,0 +1,115 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: odin-api
+  labels:
+    app.kubernetes.io/name: {{ include "odin.name" . }}
+    app: odin-api
+spec:
+  replicas: {{ .Values.replicaCount.api }}
+  selector:
+    matchLabels:
+      app: odin-api
+  template:
+    metadata:
+      labels:
+        app: odin-api
+    spec:
+      {{- include "odin.imagePullSecrets" . | nindent 6 }}
+      containers:
+        - name: odin-api
+          image: {{ include "odin.api.image" . }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          ports:
+            - containerPort: 4100
+          env:
+            - name: PORT
+              value: "4100"
+            - name: ODIN_VERSION
+              value: {{ .Values.images.api.tag | quote }}
+            - name: ODIN_ADMIN_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: odin-config
+                  key: ODIN_ADMIN_USER
+            - name: ODIN_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: odin-secrets
+                  key: ODIN_ADMIN_PASSWORD
+            - name: ODIN_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: odin-secrets
+                  key: ODIN_JWT_SECRET
+            - name: ODIN_GIT_PUSH
+              valueFrom:
+                configMapKeyRef:
+                  name: odin-config
+                  key: ODIN_GIT_PUSH
+            - name: ODIN_GIT_REPO
+              valueFrom:
+                configMapKeyRef:
+                  name: odin-config
+                  key: ODIN_GIT_REPO
+            - name: ODIN_GIT_BRANCH
+              valueFrom:
+                configMapKeyRef:
+                  name: odin-config
+                  key: ODIN_GIT_BRANCH
+            - name: ODIN_GIT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: odin-secrets
+                  key: ODIN_GIT_TOKEN
+            - name: MYSQL_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: odin-config
+                  key: MYSQL_HOST
+            - name: MYSQL_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: odin-config
+                  key: MYSQL_PORT
+            - name: MYSQL_ROOT_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: odin-config
+                  key: MYSQL_ROOT_USER
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: odin-secrets
+                  key: MYSQL_ROOT_PASSWORD
+            - name: MYSQL_APP_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: odin-config
+                  key: MYSQL_APP_USER
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 4100
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: odin-api
+  labels:
+    app: odin-api
+spec:
+  selector:
+    app: odin-api
+  ports:
+    - port: {{ .Values.service.api.port }}
+      targetPort: 4100
+      name: http

@@ -1,0 +1,6 @@
+# Optional Helm values when browsing via Istio gateway (port-forward-istio.sh).
+# Usage: helm upgrade ... -f values.yaml -f values-istio.yaml
+# Or copy these into values.yaml before Argo sync for gateway demos.
+
+authUrl: "http://localhost:8080/auth"
+analyticsUrl: "http://localhost:8080/analytics"

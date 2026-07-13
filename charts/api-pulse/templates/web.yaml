@@ -1,33 +1,36 @@
+{{- $root := . -}}
+{{- range $tag := .Values.versionsActive.web }}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: web
+  name: {{ include "api-pulse.versionedName" (dict "service" "web" "tag" $tag) }}
   labels:
-    app.kubernetes.io/name: {{ include "api-pulse.name" . }}
+    app.kubernetes.io/name: {{ include "api-pulse.name" $root }}
     app: web
+    version: {{ $tag | quote }}
 spec:
-  replicas: {{ .Values.replicaCount.web }}
+  replicas: {{ $root.Values.replicaCount.web }}
   selector:
     matchLabels:
       app: web
+      version: {{ $tag | quote }}
   template:
     metadata:
       labels:
         app: web
+        version: {{ $tag | quote }}
     spec:
-      {{- include "api-pulse.imagePullSecrets" . | nindent 6 }}
+      {{- include "api-pulse.imagePullSecrets" $root | nindent 6 }}
       containers:
         - name: web
-          image: {{ include "api-pulse.web.image" . }}
-          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          image: {{ include "api-pulse.image" (dict "root" $root "repository" $root.Values.images.web.repository "tag" $tag) }}
+          imagePullPolicy: {{ $root.Values.imagePullPolicy }}
           ports:
             - containerPort: 80
           env:
             - name: APP_VERSION
-              valueFrom:
-                configMapKeyRef:
-                  name: api-pulse-config
-                  key: UI_VERSION
+              value: {{ $tag | quote }}
             - name: UI_THEME_COLOR
               valueFrom:
                 configMapKeyRef:
@@ -59,13 +62,16 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: web
+  name: {{ include "api-pulse.versionedName" (dict "service" "web" "tag" $tag) }}
   labels:
     app: web
+    version: {{ $tag | quote }}
 spec:
   selector:
     app: web
+    version: {{ $tag | quote }}
   ports:
-    - port: {{ .Values.service.web.port }}
+    - port: {{ $root.Values.service.web.port }}
       targetPort: 80
       name: http
+{{- end }}

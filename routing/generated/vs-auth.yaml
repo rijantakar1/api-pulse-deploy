@@ -1,0 +1,51 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: api-pulse-auth
+  namespace: api-pulse
+  labels:
+    app.kubernetes.io/name: api-pulse
+    app.kubernetes.io/part-of: odin
+    odin.cd-demo.io/service: auth
+spec:
+  hosts:
+  - '*'
+  gateways:
+  - api-pulse/api-pulse-gateway
+  http:
+  - match:
+    - headers:
+        x-tenant-slug:
+          exact: acme
+      uri:
+        prefix: /auth
+    route:
+    - destination:
+        host: api-pulse-auth-latest.api-pulse.svc.cluster.local
+        port:
+          number: 80
+    rewrite:
+      uri: /
+  - match:
+    - headers:
+        x-tenant-slug:
+          exact: globex
+      uri:
+        prefix: /auth
+    route:
+    - destination:
+        host: api-pulse-auth-latest.api-pulse.svc.cluster.local
+        port:
+          number: 80
+    rewrite:
+      uri: /
+  - match:
+    - uri:
+        prefix: /auth
+    rewrite:
+      uri: /
+    route:
+    - destination:
+        host: api-pulse-auth-latest.api-pulse.svc.cluster.local
+        port:
+          number: 80

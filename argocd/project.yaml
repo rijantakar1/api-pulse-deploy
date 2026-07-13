@@ -11,7 +11,11 @@ spec:
   destinations:
     - namespace: api-pulse
       server: https://kubernetes.default.svc
+    - namespace: odin
+      server: https://kubernetes.default.svc
     - namespace: argocd
+      server: https://kubernetes.default.svc
+    - namespace: istio-system
       server: https://kubernetes.default.svc
   clusterResourceWhitelist:
     - group: ""

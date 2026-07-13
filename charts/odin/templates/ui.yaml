@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: odin-ui
+  labels:
+    app.kubernetes.io/name: {{ include "odin.name" . }}
+    app: odin-ui
+spec:
+  replicas: {{ .Values.replicaCount.ui }}
+  selector:
+    matchLabels:
+      app: odin-ui
+  template:
+    metadata:
+      labels:
+        app: odin-ui
+    spec:
+      {{- include "odin.imagePullSecrets" . | nindent 6 }}
+      containers:
+        - name: odin-ui
+          image: {{ include "odin.ui.image" . }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          ports:
+            - containerPort: 80
+          env:
+            - name: API_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: odin-config
+                  key: API_URL
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: odin-ui
+  labels:
+    app: odin-ui
+spec:
+  selector:
+    app: odin-ui
+  ports:
+    - port: {{ .Values.service.ui.port }}
+      targetPort: 80
+      name: http

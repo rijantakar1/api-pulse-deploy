@@ -1,0 +1,18 @@
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: api-pulse-gateway
+  namespace: api-pulse
+  labels:
+    app.kubernetes.io/name: api-pulse
+    app.kubernetes.io/part-of: odin
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - '*'

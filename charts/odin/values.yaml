@@ -1,0 +1,42 @@
+imageRegistry: docker.io
+imagePullPolicy: Always
+
+imagePullSecrets:
+  enabled: false
+  name: dockerhub-cred
+
+images:
+  api:
+    repository: rajashekhar2390/odin-api
+    tag: latest
+  ui:
+    repository: rajashekhar2390/odin-ui
+    tag: latest
+
+replicaCount:
+  api: 1
+  ui: 1
+
+service:
+  api:
+    port: 4100
+  ui:
+    port: 80
+
+odin:
+  adminUser: odin
+  adminPassword: odin-admin
+  jwtSecret: odin-dev-jwt-secret
+  gitPush: "true"
+  gitRepo: https://github.com/cd-demo/api-pulse-deploy.git
+  gitBranch: main
+  # Set via Secret / --set odin.gitToken=...
+  gitToken: ""
+  apiUrl: "http://localhost:4100"
+
+mysql:
+  host: mysql.api-pulse.svc.cluster.local
+  port: "3306"
+  rootUser: root
+  rootPassword: root
+  appUser: apipulse

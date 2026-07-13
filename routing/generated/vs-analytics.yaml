@@ -1,0 +1,51 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: api-pulse-analytics
+  namespace: api-pulse
+  labels:
+    app.kubernetes.io/name: api-pulse
+    app.kubernetes.io/part-of: odin
+    odin.cd-demo.io/service: analytics
+spec:
+  hosts:
+  - '*'
+  gateways:
+  - api-pulse/api-pulse-gateway
+  http:
+  - match:
+    - headers:
+        x-tenant-slug:
+          exact: acme
+      uri:
+        prefix: /analytics
+    route:
+    - destination:
+        host: api-pulse-analytics-latest.api-pulse.svc.cluster.local
+        port:
+          number: 80
+    rewrite:
+      uri: /
+  - match:
+    - headers:
+        x-tenant-slug:
+          exact: globex
+      uri:
+        prefix: /analytics
+    route:
+    - destination:
+        host: api-pulse-analytics-latest.api-pulse.svc.cluster.local
+        port:
+          number: 80
+    rewrite:
+      uri: /
+  - match:
+    - uri:
+        prefix: /analytics
+    rewrite:
+      uri: /
+    route:
+    - destination:
+        host: api-pulse-analytics-latest.api-pulse.svc.cluster.local
+        port:
+          number: 80

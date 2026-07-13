@@ -13,14 +13,13 @@ imagePullSecrets:
 {{- end }}
 {{- end -}}
 
-{{- define "api-pulse.web.image" -}}
-{{ printf "%s/%s:%s" .Values.imageRegistry .Values.images.web.repository .Values.images.web.tag | trimPrefix "docker.io/" }}
+{{- define "api-pulse.image" -}}
+{{- $registry := .root.Values.imageRegistry -}}
+{{- $repo := .repository -}}
+{{- $tag := .tag -}}
+{{ printf "%s/%s:%s" $registry $repo $tag | trimPrefix "docker.io/" }}
 {{- end -}}
 
-{{- define "api-pulse.auth.image" -}}
-{{ printf "%s/%s:%s" .Values.imageRegistry .Values.images.auth.repository .Values.images.auth.tag | trimPrefix "docker.io/" }}
-{{- end -}}
-
-{{- define "api-pulse.analytics.image" -}}
-{{ printf "%s/%s:%s" .Values.imageRegistry .Values.images.analytics.repository .Values.images.analytics.tag | trimPrefix "docker.io/" }}
+{{- define "api-pulse.versionedName" -}}
+{{- printf "api-pulse-%s-%s" .service .tag -}}
 {{- end -}}

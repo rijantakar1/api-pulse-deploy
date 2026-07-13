@@ -1,35 +1,43 @@
+{{- $root := . -}}
+{{- range $tag := .Values.versionsActive.auth }}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: auth-service
+  name: {{ include "api-pulse.versionedName" (dict "service" "auth" "tag" $tag) }}
   labels:
-    app.kubernetes.io/name: {{ include "api-pulse.name" . }}
+    app.kubernetes.io/name: {{ include "api-pulse.name" $root }}
     app: auth-service
+    version: {{ $tag | quote }}
 spec:
-  replicas: {{ .Values.replicaCount.auth }}
+  replicas: {{ $root.Values.replicaCount.auth }}
   selector:
     matchLabels:
       app: auth-service
+      version: {{ $tag | quote }}
   template:
     metadata:
       labels:
         app: auth-service
+        version: {{ $tag | quote }}
     spec:
-      {{- include "api-pulse.imagePullSecrets" . | nindent 6 }}
+      {{- include "api-pulse.imagePullSecrets" $root | nindent 6 }}
       containers:
         - name: auth-service
-          image: {{ include "api-pulse.auth.image" . }}
-          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          image: {{ include "api-pulse.image" (dict "root" $root "repository" $root.Values.images.auth.repository "tag" $tag) }}
+          imagePullPolicy: {{ $root.Values.imagePullPolicy }}
           ports:
             - containerPort: 4001
           env:
             - name: PORT
               value: "4001"
             - name: AUTH_VERSION
+              value: {{ $tag | quote }}
+            - name: JWT_SECRET
               valueFrom:
-                configMapKeyRef:
-                  name: api-pulse-config
-                  key: AUTH_VERSION
+                secretKeyRef:
+                  name: api-pulse-secrets
+                  key: JWT_SECRET
             - name: DB_HOST
               valueFrom:
                 configMapKeyRef:
@@ -45,33 +53,22 @@ spec:
                 configMapKeyRef:
                   name: api-pulse-config
                   key: DB_USER
-            - name: REGISTRY_DB
-              valueFrom:
-                configMapKeyRef:
-                  name: api-pulse-config
-                  key: REGISTRY_DB
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: api-pulse-secrets
                   key: DB_PASSWORD
-            - name: JWT_SECRET
+            - name: REGISTRY_DB
               valueFrom:
-                secretKeyRef:
-                  name: api-pulse-secrets
-                  key: JWT_SECRET
+                configMapKeyRef:
+                  name: api-pulse-config
+                  key: REGISTRY_DB
           readinessProbe:
             httpGet:
               path: /health
               port: 4001
             initialDelaySeconds: 5
             periodSeconds: 5
-          livenessProbe:
-            httpGet:
-              path: /health
-              port: 4001
-            initialDelaySeconds: 15
-            periodSeconds: 20
           resources:
             requests:
               cpu: 50m
@@ -82,13 +79,16 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: auth-service
+  name: {{ include "api-pulse.versionedName" (dict "service" "auth" "tag" $tag) }}
   labels:
     app: auth-service
+    version: {{ $tag | quote }}
 spec:
   selector:
     app: auth-service
+    version: {{ $tag | quote }}
   ports:
-    - port: {{ .Values.service.auth.port }}
-      targetPort: {{ .Values.service.auth.targetPort }}
+    - port: {{ $root.Values.service.auth.port }}
+      targetPort: {{ $root.Values.service.auth.targetPort }}
       name: http
+{{- end }}

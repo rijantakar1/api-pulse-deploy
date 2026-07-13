@@ -63,6 +63,7 @@ adopt secret api-pulse-secrets
 adopt configmap api-pulse-config
 adopt pvc mysql-data
 adopt deployment mysql
+# Legacy single-version names (pre-Odin)
 adopt deployment auth-service
 adopt deployment analytics-service
 adopt deployment web
@@ -71,6 +72,13 @@ adopt service auth-service
 adopt service analytics-service
 adopt service web
 adopt ingress api-pulse
+# Versioned resources (api-pulse-{svc}-{tag})
+for kind in deployment service; do
+  while read -r name; do
+    [[ -z "$name" ]] && continue
+    adopt "$kind" "$name"
+  done < <(kubectl -n "$NS" get "$kind" -o name 2>/dev/null | sed 's|.*/||' | grep -E '^api-pulse-(web|auth|analytics)-' || true)
+done
 
 # MySQL seed ConfigMap — managed outside the chart (not a Helm resource)
 kubectl -n "$NS" create configmap mysql-init-sql \
@@ -88,6 +96,12 @@ helm upgrade --install "$RELEASE" "$ROOT/charts/api-pulse" \
   --set images.web.tag="$TAG" \
   --set images.auth.tag="$TAG" \
   --set images.analytics.tag="$TAG" \
+  --set versions.ui="$TAG" \
+  --set versions.auth="$TAG" \
+  --set versions.analytics="$TAG" \
+  --set "versionsActive.web={$TAG}" \
+  --set "versionsActive.auth={$TAG}" \
+  --set "versionsActive.analytics={$TAG}" \
   --set imagePullPolicy=Always \
   ${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"} \
   ${HELM_EXTRA[@]+"${HELM_EXTRA[@]}"} \
@@ -98,5 +112,7 @@ echo "Deployed ${RELEASE} in ${NS} using Docker Hub tag: ${TAG}"
 echo "  rajashekhar2390/api-pulse-web:${TAG}"
 echo "  rajashekhar2390/api-pulse-auth-service:${TAG}"
 echo "  rajashekhar2390/api-pulse-analytics-service:${TAG}"
+echo "  Services: api-pulse-web-${TAG}, api-pulse-auth-${TAG}, api-pulse-analytics-${TAG}"
 echo
 echo "Port-forward:  ${ROOT}/scripts/port-forward.sh"
+echo "Istio demo:    see docs/ODIN.md"

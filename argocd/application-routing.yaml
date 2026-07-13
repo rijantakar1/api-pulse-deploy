@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: api-pulse-routing
+  namespace: argocd
+spec:
+  project: api-pulse
+  source:
+    repoURL: https://github.com/cd-demo/api-pulse-deploy.git
+    targetRevision: main
+    path: routing/generated
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: api-pulse
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

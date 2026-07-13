@@ -62,10 +62,15 @@ fi
 
 kubectl apply -f "$ROOT/argocd/project.yaml"
 kubectl apply -f "$ROOT/argocd/application.yaml"
+kubectl apply -f "$ROOT/argocd/application-routing.yaml"
+# Optional Odin TMS app (charts/odin) — apply when values/images exist
+if [[ -f "$ROOT/argocd/application-odin.yaml" ]]; then
+  kubectl apply -f "$ROOT/argocd/application-odin.yaml"
+fi
 
 echo
-echo "Application applied. Watch sync:"
-echo "  kubectl -n argocd get application api-pulse -w"
+echo "Applications applied. Watch sync:"
+echo "  kubectl -n argocd get application api-pulse api-pulse-routing -w"
 echo
 echo "Or UI: kubectl -n argocd port-forward svc/argocd-server 8081:443"
 echo

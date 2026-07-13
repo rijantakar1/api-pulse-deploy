@@ -16,6 +16,8 @@ CI also pushes `:latest` as a convenience alias. **Helm/Argo values use only the
 
 `versions.auth|analytics|ui` in [`charts/api-pulse/values.yaml`](../charts/api-pulse/values.yaml) are set to the same string so the UI Environment Info widget matches.
 
+CI also appends the tag to `versionsActive.<svc>` (multi-version Deployments). See [ODIN.md](./ODIN.md) for Istio + Odin tenant pinning.
+
 ## Secrets
 
 ### App repos (or org `cd-demo`)
