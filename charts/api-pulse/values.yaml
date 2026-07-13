@@ -25,7 +25,8 @@ images:
     tag: latest
   mysql:
     repository: mysql
-    tag: "8.0"
+    # Keep on 9.x — existing mysql-data PVC was initialized with MySQL 9; 8.0 cannot open it.
+    tag: "9.4"
 
 replicaCount:
   web: 1
