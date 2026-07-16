@@ -43,7 +43,8 @@ versions:
 # Concurrent Deployments: one Deployment+Service per active tag.
 versionsActive:
   web:
-    - latest
+    - "latest"
+    - "feature-login-canary-31b9ae4"
   auth:
     - latest
   analytics:
