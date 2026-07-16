@@ -1,11 +1,11 @@
 # App images from Amazon ECR (CI pushes here).
 # imageRegistry is set to <account>.dkr.ecr.<region>.amazonaws.com by
 # scripts/ensure_ecr_registry.py (CI) or scripts/set-ecr-account.sh (local).
-imageRegistry: REPLACE_ACCOUNT.dkr.ecr.us-west-2.amazonaws.com
+imageRegistry: 253155928537.dkr.ecr.us-east-1.amazonaws.com
 
 ecr:
-  accountId: "" # 12-digit AWS account ID (required for pulls)
-  region: us-west-2
+  accountId: "253155928537"
+  region: us-east-1
 
 imagePullPolicy: Always
 

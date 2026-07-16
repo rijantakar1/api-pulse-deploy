@@ -1,8 +1,8 @@
-imageRegistry: REPLACE_ACCOUNT.dkr.ecr.us-west-2.amazonaws.com
+imageRegistry: 253155928537.dkr.ecr.us-east-1.amazonaws.com
 
 ecr:
-  accountId: ""
-  region: us-west-2
+  accountId: "253155928537"
+  region: us-east-1
 
 imagePullPolicy: Always
 
