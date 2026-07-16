@@ -1,17 +1,22 @@
-imageRegistry: docker.io
+imageRegistry: REPLACE_ACCOUNT.dkr.ecr.us-west-2.amazonaws.com
+
+ecr:
+  accountId: ""
+  region: us-west-2
+
 imagePullPolicy: Always
 
 imagePullSecrets:
-  enabled: false
-  name: dockerhub-cred
+  enabled: true
+  name: ecr-pull
 
 images:
   api:
-    repository: rajashekhar2390/odin-api
-    tag: 20260713-0fb3748
+    repository: odin-api
+    tag: latest
   ui:
-    repository: rajashekhar2390/odin-ui
-    tag: 20260713-566fe52
+    repository: odin-ui
+    tag: latest
 
 replicaCount:
   api: 1
@@ -30,7 +35,6 @@ odin:
   gitPush: "true"
   gitRepo: https://github.com/cd-demo/api-pulse-deploy.git
   gitBranch: main
-  # Set via Secret / --set odin.gitToken=...
   gitToken: ""
   apiUrl: "http://localhost:4100"
 

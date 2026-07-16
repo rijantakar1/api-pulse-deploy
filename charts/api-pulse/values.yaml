@@ -1,31 +1,32 @@
-# Docker Hub images produced by CI (cd-demo app repos).
-# GitOps: CI sets images.<svc>.tag, versions.*, and appends to versionsActive.*.
-imageRegistry: docker.io
+# App images from Amazon ECR (CI pushes here).
+# imageRegistry is set to <account>.dkr.ecr.<region>.amazonaws.com by
+# scripts/ensure_ecr_registry.py (CI) or scripts/set-ecr-account.sh (local).
+imageRegistry: REPLACE_ACCOUNT.dkr.ecr.us-west-2.amazonaws.com
+
+ecr:
+  accountId: "" # 12-digit AWS account ID (required for pulls)
+  region: us-west-2
+
 imagePullPolicy: Always
 
-# Set true + provide dockerHub credentials if Hub repos are private.
+# ECR pull secret (refresh with scripts/refresh-ecr-pull-secret.sh — tokens expire ~12h).
 imagePullSecrets:
-  enabled: false
-  name: dockerhub-cred
-
-dockerHub:
-  username: ""
-  # Prefer --set dockerHub.password=... or an existing secret; do not commit tokens.
-  password: ""
+  enabled: true
+  name: ecr-pull
 
 images:
   web:
-    repository: rajashekhar2390/api-pulse-web
+    repository: api-pulse-web
     tag: latest
   auth:
-    repository: rajashekhar2390/api-pulse-auth-service
+    repository: api-pulse-auth-service
     tag: latest
   analytics:
-    repository: rajashekhar2390/api-pulse-analytics-service
+    repository: api-pulse-analytics-service
     tag: latest
   mysql:
     repository: mysql
-    # PVC was initialized with MySQL 9.7.x; minor downgrades are rejected by InnoDB.
+    # Public Hub image; PVC was initialized with MySQL 9.7.x.
     tag: "9.7"
 
 replicaCount:
@@ -40,8 +41,6 @@ versions:
   ui: "latest"
 
 # Concurrent Deployments: one Deployment+Service per active tag.
-# CI appends new tags (trimmed to versionsActiveMax); Odin can retire unused ones.
-# K8s names: api-pulse-{svc}-{tag} (DNS-1123: lowercase, digits, hyphens).
 versionsActive:
   web:
     - latest
@@ -54,9 +53,6 @@ versionsActiveMax: 5
 
 uiThemeColor: "#0F766E"
 
-# Browser-reachable URLs (direct port-forward defaults).
-# With Istio gateway (scripts/port-forward-istio.sh): use http://localhost:8080 for all
-# and path prefixes /auth, /analytics — see docs/ODIN.md.
 authUrl: "http://localhost:4001"
 analyticsUrl: "http://localhost:4002"
 

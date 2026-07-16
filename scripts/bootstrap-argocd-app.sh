@@ -46,18 +46,11 @@ else
   echo "      export ARGOCD_REPO_TOKEN=... ARGOCD_REPO_USERNAME=rijantakar1 and re-run."
 fi
 
-# Optional: private Docker Hub pulls for app images
-if [[ "${IMAGE_PULL_SECRET:-}" == "1" ]]; then
-  : "${DOCKERHUB_USERNAME:?set DOCKERHUB_USERNAME}"
-  : "${DOCKERHUB_TOKEN:?set DOCKERHUB_TOKEN}"
-  kubectl -n api-pulse create secret docker-registry dockerhub-cred \
-    --docker-server=https://index.docker.io/v1/ \
-    --docker-username="$DOCKERHUB_USERNAME" \
-    --docker-password="$DOCKERHUB_TOKEN" \
-    --dry-run=client -o yaml | kubectl apply -f -
-  # Enable pull secret in values via a one-time helm set is handled by editing values
-  # or re-running with imagePullSecrets.enabled — Application uses values.yaml in git.
-  echo "Created dockerhub-cred. Set imagePullSecrets.enabled=true in values.yaml if images are private."
+# Optional: ECR pull secret for private app images (tokens expire ~12h).
+#   export AWS_REGION=us-west-2 AWS_ACCOUNT_ID=123456789012
+#   ECR_PULL_SECRET=1 ./scripts/bootstrap-argocd-app.sh
+if [[ "${ECR_PULL_SECRET:-}" == "1" ]]; then
+  "$ROOT/scripts/refresh-ecr-pull-secret.sh" api-pulse odin
 fi
 
 kubectl apply -f "$ROOT/argocd/project.yaml"

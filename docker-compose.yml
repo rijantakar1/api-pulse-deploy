@@ -27,7 +27,7 @@ services:
       retries: 20
 
   auth-service:
-    image: rajashekhar2390/api-pulse-auth-service:${IMAGE_TAG:-latest}
+    image: ${ECR_REGISTRY:-rajashekhar2390}/api-pulse-auth-service:${IMAGE_TAG:-latest}
     container_name: api-pulse-auth
     environment:
       PORT: 4001
@@ -45,7 +45,7 @@ services:
         condition: service_healthy
 
   analytics-service:
-    image: rajashekhar2390/api-pulse-analytics-service:${IMAGE_TAG:-latest}
+    image: ${ECR_REGISTRY:-rajashekhar2390}/api-pulse-analytics-service:${IMAGE_TAG:-latest}
     container_name: api-pulse-analytics
     environment:
       PORT: 4002
@@ -63,7 +63,7 @@ services:
         condition: service_healthy
 
   web:
-    image: rajashekhar2390/api-pulse-web:${IMAGE_TAG:-latest}
+    image: ${ECR_REGISTRY:-rajashekhar2390}/api-pulse-web:${IMAGE_TAG:-latest}
     container_name: api-pulse-web
     environment:
       APP_VERSION: ${UI_VERSION:-1.0.0}

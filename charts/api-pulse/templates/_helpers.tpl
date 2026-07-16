@@ -6,6 +6,14 @@ api-pulse
 {{- .Release.Namespace -}}
 {{- end -}}
 
+{{- define "api-pulse.registry" -}}
+{{- if .Values.ecr.accountId -}}
+{{ printf "%s.dkr.ecr.%s.amazonaws.com" .Values.ecr.accountId .Values.ecr.region }}
+{{- else -}}
+{{ .Values.imageRegistry }}
+{{- end -}}
+{{- end -}}
+
 {{- define "api-pulse.imagePullSecrets" -}}
 {{- if .Values.imagePullSecrets.enabled }}
 imagePullSecrets:
@@ -14,10 +22,10 @@ imagePullSecrets:
 {{- end -}}
 
 {{- define "api-pulse.image" -}}
-{{- $registry := .root.Values.imageRegistry -}}
+{{- $registry := include "api-pulse.registry" .root -}}
 {{- $repo := .repository -}}
 {{- $tag := .tag -}}
-{{ printf "%s/%s:%s" $registry $repo $tag | trimPrefix "docker.io/" }}
+{{ printf "%s/%s:%s" $registry $repo $tag }}
 {{- end -}}
 
 {{- define "api-pulse.versionedName" -}}

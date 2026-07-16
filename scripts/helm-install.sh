@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install / upgrade API Pulse from Docker Hub images via Helm.
+# Install / upgrade API Pulse from ECR images via Helm.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -7,24 +7,27 @@ NS="${NAMESPACE:-api-pulse}"
 RELEASE="${RELEASE:-api-pulse}"
 TAG="${IMAGE_TAG:-latest}"
 
-# Optional private Hub pull:
-#   export DOCKERHUB_USERNAME=rajashekhar2390
-#   export DOCKERHUB_TOKEN=...
-#   export IMAGE_PULL_SECRET=1
+# Optional: refresh ECR pull secret first
+#   export AWS_REGION=us-west-2 AWS_ACCOUNT_ID=...
+#   ECR_PULL_SECRET=1 ./scripts/helm-install.sh
 #
 # If you previously used ./kubernetes/apply.sh, resources exist without Helm
 # ownership. This script adopts them. For a clean wipe instead:
 #   FORCE_CLEAN=1 ./scripts/helm-install.sh
 
 EXTRA_ARGS=()
-if [[ "${IMAGE_PULL_SECRET:-}" == "1" ]]; then
-  : "${DOCKERHUB_USERNAME:?set DOCKERHUB_USERNAME}"
-  : "${DOCKERHUB_TOKEN:?set DOCKERHUB_TOKEN}"
+if [[ -n "${AWS_ACCOUNT_ID:-}" ]]; then
+  REGION="${AWS_REGION:-us-west-2}"
   EXTRA_ARGS+=(
+    --set "ecr.accountId=${AWS_ACCOUNT_ID}"
+    --set "ecr.region=${REGION}"
+    --set "imageRegistry=${AWS_ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com"
     --set imagePullSecrets.enabled=true
-    --set dockerHub.username="$DOCKERHUB_USERNAME"
-    --set dockerHub.password="$DOCKERHUB_TOKEN"
+    --set imagePullSecrets.name=ecr-pull
   )
+fi
+if [[ "${ECR_PULL_SECRET:-}" == "1" ]]; then
+  "$ROOT/scripts/refresh-ecr-pull-secret.sh" "$NS"
 fi
 
 kubectl get ns "$NS" >/dev/null 2>&1 || kubectl create namespace "$NS"
@@ -108,11 +111,9 @@ helm upgrade --install "$RELEASE" "$ROOT/charts/api-pulse" \
   "$@"
 
 echo
-echo "Deployed ${RELEASE} in ${NS} using Docker Hub tag: ${TAG}"
-echo "  rajashekhar2390/api-pulse-web:${TAG}"
-echo "  rajashekhar2390/api-pulse-auth-service:${TAG}"
-echo "  rajashekhar2390/api-pulse-analytics-service:${TAG}"
+echo "Deployed ${RELEASE} in ${NS} using image tag: ${TAG}"
 echo "  Services: api-pulse-web-${TAG}, api-pulse-auth-${TAG}, api-pulse-analytics-${TAG}"
 echo
 echo "Port-forward:  ${ROOT}/scripts/port-forward.sh"
 echo "Istio demo:    see docs/ODIN.md"
+echo "ECR pulls:     see docs/ECR.md"

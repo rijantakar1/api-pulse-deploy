@@ -10,13 +10,9 @@ merge to main → CI build/push YYYYMMDD-<sha7> → commit Helm values → Argo 
 
 Format: `YYYYMMDD-<gitsha7>` (UTC date + short commit).
 
-Example: `rajashekhar2390/api-pulse-web:20260712-a1b2c3d`
+Example: `<account>.dkr.ecr.us-west-2.amazonaws.com/api-pulse-web:20260712-a1b2c3d`
 
-CI also pushes `:latest` as a convenience alias. **Helm/Argo values use only the immutable tag.**
-
-`versions.auth|analytics|ui` in [`charts/api-pulse/values.yaml`](../charts/api-pulse/values.yaml) are set to the same string so the UI Environment Info widget matches.
-
-CI also appends the tag to `versionsActive.<svc>` (multi-version Deployments). See [ODIN.md](./ODIN.md) for Istio + Odin tenant pinning.
+See [ECR.md](./ECR.md) for registry + pull-secret setup.
 
 ## Secrets
 
@@ -24,9 +20,11 @@ CI also appends the tag to `versionsActive.<svc>` (multi-version Deployments). S
 
 | Secret | Purpose |
 |--------|---------|
-| `DOCKERHUB_USERNAME` | Hub user (`rajashekhar2390`) |
-| `DOCKERHUB_TOKEN` | Hub access token |
-| `DEPLOY_REPO_TOKEN` | GitHub PAT (or fine-grained token) with **contents: write** on `cd-demo/api-pulse-deploy` |
+| `AWS_ACCESS_KEY_ID` | IAM user for ECR push |
+| `AWS_SECRET_ACCESS_KEY` | IAM secret |
+| `AWS_REGION` | e.g. `us-west-2` |
+| `AWS_ACCOUNT_ID` | 12-digit account |
+| `DEPLOY_REPO_TOKEN` | GitHub PAT with **contents: write** on `cd-demo/api-pulse-deploy` |
 
 Create a PAT: GitHub → Settings → Developer settings → Personal access tokens  
 Scopes: `repo` (or fine-grained: read/write contents on `api-pulse-deploy` only).
@@ -37,7 +35,7 @@ Scopes: `repo` (or fine-grained: read/write contents on `api-pulse-deploy` only)
 |--------------|---------|
 | `ARGOCD_REPO_TOKEN` | PAT that can **read** `cd-demo/api-pulse-deploy` |
 | `ARGOCD_REPO_USERNAME` | Your GitHub username (e.g. `rijantakar1`) |
-| Optional `IMAGE_PULL_SECRET=1` + Hub creds | If Hub images are private |
+| Optional `ECR_PULL_SECRET=1` + AWS env | Creates/refreshes `ecr-pull` in namespaces |
 
 #### Fix: `authorization failed: Write access to repository not granted`
 
@@ -114,7 +112,7 @@ git push origin main
 1. [ ] Argo CD installed; Application `api-pulse` Healthy/Synced  
 2. [ ] `DEPLOY_REPO_TOKEN` set on app repos  
 3. [ ] Merge (or push) to analytics `main`  
-4. [ ] Actions: image pushed `rajashekhar2390/api-pulse-analytics-service:YYYYMMDD-sha`  
+4. [ ] Actions: image pushed to ECR `…/api-pulse-*:YYYYMMDD-sha`  
 5. [ ] Deploy repo gets commit `chore(cd): bump analytics image to ...`  
 6. [ ] Argo Application syncs; pod image shows new tag  
 7. [ ] UI Environment Info / `/health` shows matching version string  
@@ -123,7 +121,7 @@ git push origin main
 
 - Argo CD runs **inside** Minikube; it does not need the Actions runner to kubectl-deploy.
 - Runner only builds, pushes Hub, and commits GitOps.
-- VPN must allow Minikube pods to pull from Docker Hub and Argo to reach GitHub.
+- VPN must allow Minikube pods to pull from ECR and Argo to reach GitHub.
 - Keep Minikube running while testing CD.
 
 ## Layout

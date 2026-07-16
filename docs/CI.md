@@ -1,30 +1,32 @@
-# CI — Docker Hub builds + GitOps bump
+# CI — Amazon ECR builds + GitOps bump
 
-App workflows (self-contained):
-
-- Build/push image tag `YYYYMMDD-<sha7>`
-- On `main` only: commit Helm values in `cd-demo/api-pulse-deploy` (Argo CD syncs)
-
-See also [`CD.md`](CD.md).
+```text
+push to main|feature-* → build → ECR push → commit Helm values → Argo CD sync
+```
 
 ## Triggers
 
-| Event | Branches | GitOps bump |
-|-------|----------|-------------|
-| Push / merge | `main` | Yes |
-| Push | `feature-**` | No (build only) |
-| Manual | `workflow_dispatch` | If on `main` |
+| Event | Branches | GitOps |
+|-------|----------|--------|
+| push | `main` | Full tag bump (`images.*`, `versions.*`, `versionsActive`) |
+| push | `feature-*` | Append `versionsActive` only (canary Deployments) |
+| workflow_dispatch | any | Same rules by branch |
 
-## Secrets (each app repo or org)
+## Secrets (app repos)
 
-| Secret | Value |
-|--------|--------|
-| `DOCKERHUB_USERNAME` | `rajashekhar2390` |
-| `DOCKERHUB_TOKEN` | Docker Hub access token |
-| `DEPLOY_REPO_TOKEN` | GitHub PAT with write access to `cd-demo/api-pulse-deploy` |
+| Secret | Purpose |
+|--------|---------|
+| `AWS_ACCESS_KEY_ID` | ECR push |
+| `AWS_SECRET_ACCESS_KEY` | ECR push |
+| `AWS_REGION` | e.g. `us-west-2` |
+| `AWS_ACCOUNT_ID` | 12-digit account |
+| `DEPLOY_REPO_TOKEN` | Write to `cd-demo/api-pulse-deploy` |
 
-## Runner
+See [ECR.md](./ECR.md) for registry setup and pull secrets.
 
-Labels: `self-hosted`, `macOS`, `X64`, `beacon`
+## Image tags
 
-GitOps commits use concurrency group `api-pulse-deploy-gitops` so parallel service merges rebase safely.
+- **main:** `YYYYMMDD-<sha7>` (+ `:latest` alias)  
+- **feature:** `feature-<branch>-<sha7>`
+
+GitOps concurrency group: `api-pulse-deploy-gitops`.

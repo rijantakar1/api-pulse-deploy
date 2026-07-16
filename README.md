@@ -2,30 +2,39 @@
 
 Docker Compose, Helm, MySQL bootstrap, and Kubernetes manifests for the **API Pulse** demo.
 
-App repos (org `cd-demo`) build/push to Docker Hub; this repo **pulls** those images.
+App repos (org `cd-demo`) build/push to **Amazon ECR**; this repo holds Helm/Argo GitOps config.
 
-| Repo | Hub image |
-|------|-----------|
-| `api-pulse-web` | `rajashekhar2390/api-pulse-web` |
-| `api-pulse-auth-service` | `rajashekhar2390/api-pulse-auth-service` |
-| `api-pulse-analytics-service` | `rajashekhar2390/api-pulse-analytics-service` |
+| Repo | ECR repository |
+|------|----------------|
+| `api-pulse-web` | `api-pulse-web` |
+| `api-pulse-auth-service` | `api-pulse-auth-service` |
+| `api-pulse-analytics-service` | `api-pulse-analytics-service` |
+| `odin-api` / `odin-ui` | `odin-api` / `odin-ui` |
 
 CI notes: [`docs/CI.md`](docs/CI.md)  
-CD (Argo CD / GitOps): [`docs/CD.md`](docs/CD.md)
+CD (Argo CD / GitOps): [`docs/CD.md`](docs/CD.md)  
+ECR setup: [`docs/ECR.md`](docs/ECR.md)  
+Odin / Istio: [`docs/ODIN.md`](docs/ODIN.md)
 
 ## Layout
 
 ```
 api-pulse-deploy/
 ├── argocd/                      # Argo CD Application + AppProject
-├── charts/api-pulse/            # Helm chart (Docker Hub images)
+├── charts/api-pulse/            # Helm chart (ECR app images)
+├── charts/odin/                 # Odin TMS chart
+├── routing/                     # TenantRouting + generated Istio
 ├── db/
-├── docker-compose.yml           # pulls Hub images
 ├── docs/
 │   ├── CI.md
-│   └── CD.md
+│   ├── CD.md
+│   ├── ECR.md
+│   └── ODIN.md
 ├── scripts/
-│   ├── helm-install.sh          # bootstrap without Argo (optional)
+│   ├── helm-install.sh
+│   ├── refresh-ecr-pull-secret.sh
+│   ├── set-ecr-account.sh
+│   ├── ensure_ecr_registry.py
 │   ├── install-argocd.sh
 │   ├── bootstrap-argocd-app.sh
 │   ├── bump_values.py
