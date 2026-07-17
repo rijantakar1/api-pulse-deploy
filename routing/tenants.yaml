@@ -22,5 +22,5 @@ spec:
     analytics: latest
   tenants:
     acme:
-      web: feature-ecr-canary-demo-ce93aa7
+      web: 20260716-95eeb68
     globex: {}
