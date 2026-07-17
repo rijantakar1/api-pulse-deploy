@@ -21,6 +21,5 @@ spec:
     auth: 20260716-945376a
     analytics: 20260716-567591d
   tenants:
-    acme:
-      web: feature-ecr-canary-demo-ce93aa7
+    acme: {}
     globex: {}
