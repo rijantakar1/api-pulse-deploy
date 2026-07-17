@@ -18,8 +18,10 @@ def bump(path: Path, key: str, tag: str) -> None:
     in_svc = False
     updated = False
     for line in lines:
-        stripped = line.lstrip()
-        indent = len(line) - len(stripped)
+        # Strip trailing newline so endswith(":") works (same bug as bump_values.py).
+        raw = line.rstrip("\r\n")
+        stripped = raw.lstrip()
+        indent = len(raw) - len(stripped)
         if stripped.startswith("images:"):
             in_images = True
             in_svc = False

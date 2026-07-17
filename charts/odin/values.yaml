@@ -16,7 +16,7 @@ images:
     tag: 20260717-67e325c
   ui:
     repository: odin-ui
-    tag: 20260717-67e325c
+    tag: 20260717-079f94e
 
 replicaCount:
   api: 1
