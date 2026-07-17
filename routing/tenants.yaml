@@ -22,5 +22,5 @@ spec:
     analytics: latest
   tenants:
     acme:
-      web: feature-login-canary-31b9ae4
+      web: latest
     globex: {}
