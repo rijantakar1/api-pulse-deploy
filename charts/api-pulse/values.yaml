@@ -46,6 +46,7 @@ versionsActive:
     - "latest"
     - "feature-ecr-canary-demo-ce93aa7"
     - "20260716-95eeb68"
+    - "feature-ecr-canary-demo-a543353"
   auth:
     - "latest"
     - "20260716-945376a"
